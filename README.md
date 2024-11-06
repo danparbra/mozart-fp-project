@@ -1,2 +1,2 @@
 # mozart-fp-project
-Mozart functional [rogramming project.
+Mozart functional programming project.

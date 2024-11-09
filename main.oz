@@ -1,52 +1,82 @@
-% Task 1
-
-%% Definición de estructura gráfica del programa como records
 declare
-%% Leaf nodes
 fun {Leaf Value}
    node(leaf Value)
 end
 
-%% Application nodes
-fun {App Left Right}
-   node(app Left Right)
+fun {Operator Op Left Right}
+   node(operator Op Left Right)
 end
 
-%% Representación de primitivo suma
-Plus = {Leaf '+'}
-
-% Parámetro como nodo leaf
-X = {Leaf x}
-
-% Contenido de la función: x + x
-FunctionBody = {App {App Plus X} X}
-
-% Guardar la función 'twice' en un map Functions
-Functions = {'Map'.new()}
-{Functions.put(twice FunctionBody)}
-
-% Aplicación inicial: twice 5
-TwiceFunction = {Leaf twice}
-Five = {Leaf 5}
-InitialGraph = {App TwiceFunction Five}
-
-% Función Substitution
-fun {Substitute Node Env}
+% Evaluar
+fun {Evaluate Node}
    case Node of
-      node(leaf Var) then
-         if {Env.hasKey Var} then
-            {Env.get Var}
+      node(leaf Value) then
+         if {IsNumber Value} then
+            Node
          else
             Node
          end
-   [] node(app Left Right) then
-         node(app {Substitute Left Env} {Substitute Right Env})
+
+   [] node(operator Op LeftArg RightArg) then
+         LeftVal = {Evaluate LeftArg}
+         RightVal = {Evaluate RightArg}
+
+         case LeftVal of node(leaf LV) then
+            if not {IsNumber LV} then
+               Node
+            end
+         else
+            raise error('Left argument did not reduce to a value') end
+         end
+
+         case RightVal of node(leaf RV) then
+            if not {IsNumber RV} then
+               Node
+            end
+         else
+            raise error('Right argument did not reduce to a value') end
+         end
+
+         Result =
+            case Op
+            of '+' then LV + RV
+            [] '-' then LV - RV
+            [] '*' then LV * RV
+            [] '/' then LV div RV
+            else
+               raise error('Unknown operator') end
+            end
+
+         % Return a leaf node with the result
+         {Leaf Result}
+
    else
-      Node
+      raise error('Unknown node type') end
    end
 end
 
-Env = {'Map'.new()}
-{Env.put(x Five)}
-FunctionBody = {Functions.get(twice)}
-SubstitutedGraph = {Substitute FunctionBody Env}
+% Example 1: Reducible expression (5 + 5)
+Five = {Leaf 5}
+OperatorNode1 = {Operator '+' Five Five}
+ReducedGraph1 = {Evaluate OperatorNode1}
+
+case ReducedGraph1 of
+   node(leaf Value) then
+      {Browse Value}  % Displays 10
+else
+   _ % Do nothing; expression couldn't be reduced further
+end
+
+% Example 2: Non-reducible expression (x + x)
+XLeaf = {Leaf x}
+OperatorNode2 = {Operator '+' XLeaf XLeaf}
+ReducedGraph2 = {Evaluate OperatorNode2}
+% Graph remains the same as OperatorNode2
+
+% Output the result
+case ReducedGraph2 of
+   node(leaf Value) then
+      {Browse Value}  % Would only display if Value is a number
+else
+   {Browse 'Expression could not be reduced further.'}
+end

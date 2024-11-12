@@ -1,9 +1,13 @@
-functor
-import
-    System
-define
+% Universidad de los Andes
+% ISIS4217: Paradigmas de Programación
+% David Andres Paredes Bravo - 202315719
+% Nicolás Londoño - 201821364
 
-% Base structures
+% FP project
+% --------------------
+
+declare
+% Estructuras base
 fun {MakeNumber Value}
    number(value:Value)
 end
@@ -24,7 +28,7 @@ fun {MakeSupercombinator Name Params Body}
    supercombinator(name:Name params:Params body:Body)
 end
 
-%Environment functions
+% Ambiente
 fun {EnvLookup Env Name}
    case Env
    of nil then false
@@ -39,7 +43,7 @@ fun {EnvExtend Env Name Value}
    (Name#Value)|Env
 end
 
-% Primitive declarations
+% Operaciones primitivas a soportar (+, -, *, /)
 Primitives = [
    '+'#primitive(
       name:'+'
@@ -68,7 +72,7 @@ Primitives = [
    )
 ]
 
-% Parser
+% Parseador
 fun {ParseExpression Tokens}
    case Tokens
    of nil then nil
@@ -83,7 +87,7 @@ fun {ParseExpression Tokens}
       local Left Right in
          Left = {ParseExpression [T2]}
          Right = {ParseExpression [T3]}
-         {MakeApplication 
+         {MakeApplication
             {MakeApplication {EnvLookup Primitives Op} Left}
             Right}
       end
@@ -111,7 +115,7 @@ fun {ParseFunction Line}
    end
 end
 
-% Reducer
+% Reducción
 fun {FindRedex Node}
    fun {FindRedexRec Node Depth}
       case Node
@@ -151,7 +155,7 @@ fun {Reduce Node Env Functions}
          Redex = {FindRedex Node}
          case Redex
          of false then
-            {MakeApplication 
+            {MakeApplication
                {Reduce F Env Functions}
                {Reduce A Env Functions}}
          else
@@ -172,7 +176,7 @@ fun {Reduce Node Env Functions}
                   if {Length Params} == 1 then
                      {Reduce Body NewEnv Functions}
                   else
-                     {MakeSupercombinator Name Params.2 
+                     {MakeSupercombinator Name Params.2
                         {Reduce Body NewEnv Functions}}
                   end
                end
@@ -194,13 +198,15 @@ fun {IsPrefix S1 S2}
     end
 end
 
-% Evaluator
+% Evaluador
 fun {Evaluate Program}
-   local 
+   local
+      % Función anidada de ayuda para separar progama por cada línea
       fun {SplitIntoLines Str}
          {String.tokens Str &\n}
       end
 
+      % Función anidada de ayuda para convertir resultado a string
       fun {ResultToString Result}
          case Result
          of nil then "nil"
@@ -208,12 +214,13 @@ fun {Evaluate Program}
          [] variable(name:N) then N
          [] primitive(name:N ...) then N
          [] supercombinator(name:N ...) then N
-         [] application(func:F arg:A) then 
+         [] application(func:F arg:A) then
             "(" # {ResultToString F} # " " # {ResultToString A} # ")"
          else "unknown result"
          end
       end
 
+      % Función anidada de ayuda para evaluar cada línea
       fun {EvaluateLines Lines Functions LastExpr}
          case Lines
          of nil then
@@ -221,6 +228,7 @@ fun {Evaluate Program}
             else {Reduce LastExpr nil Functions}
             end
          [] Line|Rest then
+            % Convert Line to string if it isn't already
             local StrLine = {VirtualString.toString Line} in
                if {IsPrefix "fun " StrLine} then
                   local NewFunc NewFunctions in
@@ -242,8 +250,8 @@ fun {Evaluate Program}
          end
       end
 
-      Lines = if {IsRecord Program} andthen {Label Program} == '|' then Program 
-              else {SplitIntoLines Program} 
+      Lines = if {IsRecord Program} andthen {Label Program} == '|' then Program
+              else {SplitIntoLines Program}
               end
       Result = {EvaluateLines Lines nil nil}
    in
@@ -251,6 +259,20 @@ fun {Evaluate Program}
    end
 end
 
-{System.showInfo {Evaluate "fun id x = x \nid 4"}}
+% Test
+declare
+Program = "
+fun twice x = x + x
+twice 5
+"
+declare
+Result = {Evaluate Program}
+{Browse Result}  % Tiene que mostrar "10"
 
-end
+declare
+Program2 = "
+5 + 5
+"
+declare
+Result2 = {Evaluate Program2}
+{Browse Result2}  % Tiene que mostrar "10"

@@ -7,7 +7,8 @@
 % --------------------
 
 declare
-% Estructuras base
+% Estructuras base por medio de graphs (records) para representar el programa
+% Implementación de tipos de nodo leaf y @
 fun {MakeNumber Value}
    number(value:Value)
 end
@@ -72,7 +73,7 @@ Primitives = [
    )
 ]
 
-% Parseador
+% Parseamiento de representación textual a graph
 fun {ParseExpression Tokens}
    case Tokens
    of nil then nil
@@ -115,7 +116,7 @@ fun {ParseFunction Line}
    end
 end
 
-% Reducción
+% Reducción de expresiones en orden específico
 fun {FindRedex Node}
    fun {FindRedexRec Node Depth}
       case Node
@@ -198,7 +199,7 @@ fun {IsPrefix S1 S2}
     end
 end
 
-% Evaluador
+% Evaluación
 fun {Evaluate Program}
    local
       % Función anidada de ayuda para separar progama por cada línea

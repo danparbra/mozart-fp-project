@@ -1,7 +1,8 @@
-% David Paredes
-% Nicolas Londoño
+functor
+import
+    System
+define
 
-declare
 % Base structures
 fun {MakeNumber Value}
    number(value:Value)
@@ -38,7 +39,7 @@ fun {EnvExtend Env Name Value}
    (Name#Value)|Env
 end
 
-% Primitive delcarations
+% Primitive declarations
 Primitives = [
    '+'#primitive(
       name:'+'
@@ -99,7 +100,6 @@ fun {ParseFunction Line}
    local Parts EqPos Name Params Body in
       Parts = {String.tokens Line & }
       if Parts.1 \= "fun" then
-         {Browse 'Error: Function definition must start with "fun"'}
          nil
       else
          Name = Parts.2
@@ -183,34 +183,78 @@ fun {Reduce Node Env Functions}
    end
 end
 
+fun {IsPrefix S1 S2}
+    case S1#S2
+    of nil#_ then true
+    [] (_|_)#nil then false
+    [] (H1|T1)#(H2|T2) then
+        if H1 == H2 then {IsPrefix T1 T2}
+        else false
+        end
+    end
+end
 % Evaluator
 fun {Evaluate Program}
-   fun {EvaluateLines Lines Functions LastExpr}
-      case Lines
-      of nil then
-         if LastExpr == nil then nil
-         else {Reduce LastExpr nil Functions}
+   local 
+      % Helper function to split program into lines
+      fun {SplitIntoLines Str}
+         {String.tokens Str &\n}
+      end
+
+      % Helper function to convert result to string
+      fun {ResultToString Result}
+         case Result
+         of nil then "nil"
+         [] number(value:V) then {VirtualString.toString V}
+         [] variable(name:N) then N
+         [] primitive(name:N ...) then N
+         [] supercombinator(name:N ...) then N
+         [] application(func:F arg:A) then 
+            "(" # {ResultToString F} # " " # {ResultToString A} # ")"
+         else "unknown result"
          end
-      [] Line|Rest then
-         if {String.isPrefix "fun " Line} then
-            local NewFunc NewFunctions in
-               NewFunc = {ParseFunction Line}
-               if NewFunc == nil then
-                  {EvaluateLines Rest Functions LastExpr}
-               else
-                  NewFunctions = {EnvExtend Functions NewFunc.name NewFunc}
-                  {EvaluateLines Rest NewFunctions LastExpr}
-               end
+      end
+
+      % Helper function to evaluate lines
+      fun {EvaluateLines Lines Functions LastExpr}
+         case Lines
+         of nil then
+            if LastExpr == nil then nil
+            else {Reduce LastExpr nil Functions}
             end
-         else
-            local NewExpr in
-               NewExpr = {ParseExpression {String.tokens Line & }}
-               {EvaluateLines Rest Functions NewExpr}
+         [] Line|Rest then
+            % Convert Line to string if it isn't already
+            local StrLine = {VirtualString.toString Line} in
+               if {IsPrefix "fun " StrLine} then
+                  local NewFunc NewFunctions in
+                     NewFunc = {ParseFunction StrLine}
+                     if NewFunc == nil then
+                        {EvaluateLines Rest Functions LastExpr}
+                     else
+                        NewFunctions = {EnvExtend Functions NewFunc.name NewFunc}
+                        {EvaluateLines Rest NewFunctions LastExpr}
+                     end
+                  end
+               else
+                  local NewExpr in
+                     NewExpr = {ParseExpression {String.tokens StrLine & }}
+                     {EvaluateLines Rest Functions NewExpr}
+                  end
+               end
             end
          end
       end
+
+      Lines = if {IsRecord Program} andthen {Label Program} == '|' then Program 
+              else {SplitIntoLines Program} 
+              end
+      Result = {EvaluateLines Lines nil nil}
+   in
+      {ResultToString Result}
    end
-in
-   {EvaluateLines Program nil nil}
 end
 
+% Test the evaluator with a function definition and application
+{System.showInfo {Evaluate "fun id x = x \nid 4"}}
+
+end

@@ -193,15 +193,14 @@ fun {IsPrefix S1 S2}
         end
     end
 end
+
 % Evaluator
 fun {Evaluate Program}
    local 
-      % Helper function to split program into lines
       fun {SplitIntoLines Str}
          {String.tokens Str &\n}
       end
 
-      % Helper function to convert result to string
       fun {ResultToString Result}
          case Result
          of nil then "nil"
@@ -215,7 +214,6 @@ fun {Evaluate Program}
          end
       end
 
-      % Helper function to evaluate lines
       fun {EvaluateLines Lines Functions LastExpr}
          case Lines
          of nil then
@@ -223,7 +221,6 @@ fun {Evaluate Program}
             else {Reduce LastExpr nil Functions}
             end
          [] Line|Rest then
-            % Convert Line to string if it isn't already
             local StrLine = {VirtualString.toString Line} in
                if {IsPrefix "fun " StrLine} then
                   local NewFunc NewFunctions in
@@ -254,7 +251,6 @@ fun {Evaluate Program}
    end
 end
 
-% Test the evaluator with a function definition and application
 {System.showInfo {Evaluate "fun id x = x \nid 4"}}
 
 end
